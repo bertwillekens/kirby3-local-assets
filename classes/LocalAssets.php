@@ -10,7 +10,7 @@ class LocalAssets
       return $path;
     }
 
-    public static function getMediaRoot(){
+    private static function getMediaRoot(){
       $kirby = kirby();
       $mediaRoot = $kirby->root('media') . '/local-assets';
       if(!is_dir($mediaRoot)){
@@ -19,7 +19,7 @@ class LocalAssets
       return $mediaRoot;
     }
 
-    public static function getDownloadsRoot(){
+    private static function getDownloadsRoot(){
       $mediaRoot = self::getMediaRoot();
       $downloadsRoot = $mediaRoot . '/downloads';
       if(!is_dir($downloadsRoot)){
@@ -28,13 +28,13 @@ class LocalAssets
       return $downloadsRoot;
     }
 
-    public static function newDownloadPath(){
+    private static function newDownloadPath(){
       $downloadsRoot = self::getDownloadsRoot();
       $downloadPath = $downloadsRoot . '/' . uniqid();
       return $downloadPath;
     }
 
-    public static function fileDirPath($url){
+    private static function fileDirPath($url){
       $url_sha1 = sha1($url);
       $mediaRoot = self::getMediaRoot();
 
@@ -43,7 +43,7 @@ class LocalAssets
       return $fileDir;
     }
 
-    public static function filePath($url, $ext){
+    private static function filePath($url, $ext){
       $url_sha1 = sha1($url);
       $fileDir = self::fileDirPath($url);
 
@@ -55,13 +55,13 @@ class LocalAssets
       return $filePath;
     }
     
-    public static function findFileDir($url){
+    private static function findFileDir($url){
       $fileDir = self::fileDirPath($url);
       if(is_dir($fileDir)) return $fileDir;
       return null;
     }
 
-    public static function createFileDir($url){
+    private static function createFileDir($url){
       $fileDir = self::fileDirPath($url);
       if(!is_dir($fileDir)){
         Dir::make($fileDir);
@@ -70,7 +70,7 @@ class LocalAssets
       return $fileDir;
     }
 
-    public static function findAsset($url){
+    private static function findAsset($url){
       $fileDir = self::findFileDir($url);
       if(empty($fileDir)) return null;
 
@@ -84,7 +84,7 @@ class LocalAssets
       }
     }
 
-    public static function downloadFile($url){
+    private static function downloadFile($url){
       $downloadPath = self::newDownloadPath();
       try{
         file_put_contents($downloadPath, fopen($url, 'r'));
@@ -102,7 +102,7 @@ class LocalAssets
       }
     }
     
-    public static function createAsset($url){
+    private static function createAsset($url){
       $fileDir = self::createFileDir($url);
 
       $fileRoot = self::downloadFile($url);
