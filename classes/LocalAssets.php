@@ -1,16 +1,7 @@
 <?php
 
-
-// use Kirby\Http\Remote;
-use Kirby\Toolkit\Dir;
-
 class LocalAssets
 {
-    public function __construct()
-    {
-      
-    }
-
     private static function rootToPath($root){
       $kirby = kirby();
       $mediaRoot = $kirby->root('media');
