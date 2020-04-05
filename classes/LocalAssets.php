@@ -34,20 +34,18 @@ class LocalAssets
       return $downloadPath;
     }
 
-    private static function fileDirPath($url){
-      $url_sha1 = sha1($url);
+    private static function fileDirPath($uid){
       $mediaRoot = self::getMediaRoot();
 
-      $fileDir = $mediaRoot . '/' . $url_sha1;
+      $fileDir = $mediaRoot . '/' . $uid;
 
       return $fileDir;
     }
 
-    private static function filePath($url, $ext){
-      $url_sha1 = sha1($url);
-      $fileDir = self::fileDirPath($url);
+    private static function filePath($uid, $ext){
+      $fileDir = self::fileDirPath($uid);
 
-      $filePath = $fileDir . '/' . $url_sha1;
+      $filePath = $fileDir . '/' . $uid;
       if(!empty($ext)){
         $filePath .= '.' . $ext;
       }
@@ -55,14 +53,14 @@ class LocalAssets
       return $filePath;
     }
     
-    private static function findFileDir($url){
-      $fileDir = self::fileDirPath($url);
+    private static function findFileDir($uid){
+      $fileDir = self::fileDirPath($uid);
       if(is_dir($fileDir)) return $fileDir;
       return null;
     }
 
-    private static function createFileDir($url){
-      $fileDir = self::fileDirPath($url);
+    private static function createFileDir($uid){
+      $fileDir = self::fileDirPath($uid);
       if(!is_dir($fileDir)){
         Dir::make($fileDir);
       }
@@ -70,13 +68,23 @@ class LocalAssets
       return $fileDir;
     }
 
-    private static function findAsset($url){
-      $fileDir = self::findFileDir($url);
+    private static function removeFileDir($uid){
+      $fileDir = self::fileDirPath($uid);
+      if(is_dir($fileDir)){
+        Dir::make($fileDir);
+      }
+
+      return $fileDir;
+    }
+
+    private static function findAsset($uid){
+      $fileDir = self::findFileDir($uid);
       if(empty($fileDir)) return null;
 
       $files = Dir::files($fileDir);
       foreach($files as $file){
         if(substr($file, 0, 1) == '.') continue;
+        if($file == 'url.txt') continue;
         $fileRoot = $fileDir . '/' . $file;
         $filePath = self::rootToPath($fileRoot);
         $asset = new Asset($filePath);
@@ -84,43 +92,59 @@ class LocalAssets
       }
     }
 
-    private static function downloadFile($url){
+    private static function downloadFile($url, $uid){
       $downloadPath = self::newDownloadPath();
+      $urlFile = '';
+
       try{
         file_put_contents($downloadPath, fopen($url, 'r'));
         $ext = 'jpg';
-        $targetPath = self::filePath($url, $ext);
+        $targetPath = self::filePath($uid, $ext);
   
         F::move($downloadPath, $targetPath);
+
+        $fileDir = self::fileDirPath($uid);
+        $urlFile =  $fileDir . '/url.txt';
+        file_put_contents($urlFile, $uid);
   
         return $targetPath;
       } catch(Exception $e){
         if(F::exists($downloadPath)){
           F::remove($downloadPath);
         }
-        return null;
+        if(!empty($urlFile)){
+          F::remove($urlFile);
+        }
+        throw $e;
       }
     }
     
-    private static function createAsset($url){
-      $fileDir = self::createFileDir($url);
+    private static function createAsset($url, $uid){
+      $fileDir = self::createFileDir($uid);
 
-      $fileRoot = self::downloadFile($url);
-
-      if(!empty($fileRoot)){
+      try{
+        $fileRoot = self::downloadFile($url, $uid);
         $filePath = self::rootToPath($fileRoot);
         $asset = new Asset($filePath);
         return $asset;
+      } catch(Exception $e){
+        if(is_dir($fileDir)){
+          Dir::remove($fileDir);
+        }
+        return null;
       }
-      return null;
     }
 
-    public static function getLocalAsset(string $url)
+    public static function getLocalAsset(string $url, ?string $uid)
     {
-      $asset = self::findAsset($url);
+      if(empty($uid)) {
+        $uid = sha1($url);
+      }
+
+      $asset = self::findAsset($uid);
       if(!empty($asset)) return $asset;
 
-      $asset = self::createAsset($url);
+      $asset = self::createAsset($url, $uid);
       return $asset;
     }
 }
